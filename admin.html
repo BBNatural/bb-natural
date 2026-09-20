@@ -1,17 +1,57 @@
 <!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>BB NATURAL Yönetim</title>
 <style>:root{--bg:#efe6d2;--card:#faf6ea;--ink:#332619;--green:#242e1b;--clay:#be6644;--line:#d8ccb5;--danger:#a33a2a}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px Arial,sans-serif}.wrap{max-width:980px;margin:auto;padding:24px}.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px;margin:14px 0}h1,h2{margin:0 0 12px}input,select,textarea{width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;background:#fff;margin:6px 0 12px}button{border:0;border-radius:999px;padding:11px 17px;font-weight:700;cursor:pointer;background:var(--green);color:#fff}button.alt{background:var(--clay)}button.danger{background:var(--danger)}button.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.row>*{flex:1}.row button{flex:0 0 auto}.item{display:grid;grid-template-columns:70px 1fr auto;gap:12px;align-items:center;border-top:1px solid var(--line);padding:10px 0}.item img{width:70px;height:80px;object-fit:cover;border-radius:9px;background:#fff}.small{font-size:12px;opacity:.75}#app{display:none}#msg{min-height:20px;font-weight:700}@media(max-width:650px){.item{grid-template-columns:55px 1fr}.item img{width:55px;height:65px}.item .actions{grid-column:1/-1}}</style></head><body>
-<div class="wrap"><div id="login" class="card"><h1>BB NATURAL Yönetim</h1><p>Supabase yönetici hesabınızla giriş yapın.</p><input id="email" type="email" placeholder="E-posta"><input id="password" type="password" placeholder="Şifre"><button id="loginBtn">Giriş yap</button><p id="loginMsg"></p></div>
+<div class="wrap"><div id="login" class="card"><h1>BB NATURAL Yönetim</h1><p>Supabase yönetici hesabınızla giriş yapın.</p><input id="email" type="email" placeholder="E-posta"><input id="password" type="password" placeholder="Şifre"><button id="loginBtn" type="button">Giriş yap</button><p id="loginMsg" style="min-height:20px;font-weight:700"></p><p id="diag" class="small"></p></div>
 <div id="app"><div class="row"><h1>Ürün Yönetimi</h1><button class="ghost" id="logout">Çıkış</button></div><div id="msg"></div>
 <div class="card"><h2>İlk kurulum</h2><p>Supabase tablosu boşsa mevcut <b>index.html</b> ürünlerini tek seferde içeri aktarır. Sonrasında buna tekrar basmayın.</p><button class="alt" id="importBtn">Mevcut site ürünlerini Supabase'e aktar</button></div>
 <div class="card"><h2 id="formTitle">Yeni ürün</h2><div class="row"><div><label>Bölüm</label><select id="category"></select></div><div><label>Sıra</label><input id="sort" type="number" min="1" value="1"></div></div><label>Ürün adı</label><input id="name" maxlength="120"><label>Açıklama</label><textarea id="description" maxlength="400"></textarea><label>Fotoğraf</label><input id="image" type="file" accept="image/*"><img id="preview" style="max-width:180px;max-height:180px;display:none;border-radius:12px"><div class="row"><button id="save">Kaydet</button><button class="ghost" id="cancel" style="display:none">Vazgeç</button></div></div>
 <div class="card"><div class="row"><select id="filter"></select><input id="search" placeholder="Ürün ara..."></div><div id="list"></div></div></div></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script>
-const URL='https://dpzqhecrdhrkfgilbzgy.supabase.co', KEY='sb_publishable_CzL3BoENdr0LAgjZ_KENNQ_MGuQgwnE', ADMIN_UID='3cc26c85-9a73-4ec2-8a16-ee13cb8683ef'; const db=supabase.createClient(URL,KEY); const $=x=>document.getElementById(x);
+const URL='https://dpzqhecrdhrkfgilbzgy.supabase.co', KEY='sb_publishable_CzL3BoENdr0LAgjZ_KENNQ_MGuQgwnE', ADMIN_UID='3cc26c85-9a73-4ec2-8a16-ee13cb8683ef';
+const $=x=>document.getElementById(x);
+let db=null;
+function loginStatus(t,e=false){$('loginMsg').textContent=t;$('loginMsg').style.color=e?'#a33a2a':'#3f4b2b'}
+try{
+  if(!window.supabase || typeof window.supabase.createClient!=='function') throw new Error('Supabase kütüphanesi yüklenemedi. Sayfayı yenileyin.');
+  db=window.supabase.createClient(URL,KEY);
+  $('diag').textContent='Supabase bağlantısı hazır.';
+}catch(e){
+  $('diag').textContent='Bağlantı hatası: '+e.message;
+  $('diag').style.color='#a33a2a';
+  loginStatus('Giriş sistemi başlatılamadı.',true);
+}
+window.addEventListener('error',e=>{if($('diag')){$('diag').textContent='JavaScript hatası: '+(e.message||'Bilinmeyen hata');$('diag').style.color='#a33a2a';}});
+window.addEventListener('unhandledrejection',e=>{if($('diag')){$('diag').textContent='İşlem hatası: '+(e.reason?.message||String(e.reason||'Bilinmeyen hata'));$('diag').style.color='#a33a2a';}});
 const cats=[['canta','Çanta'],['goblen','Goblen Çanta'],['soap-set3',"3'lü Set"],['soap-zeytin3','Zeytin 3'],['soap-asetatli','Asetatlı'],['soap-askili','Askılı'],['soap-soguk','Soğuk'],['soap-kabak','Kabak'],['soap-kagit','Kağıt'],['soap-kalp','Kalp'],['soap-kesme','Kesme'],['soap-luks','Lüks'],['soap-oval','Oval'],['soap-tahtali','Tahtalı'],['soap-tas','Taş']];
 for(const [v,n] of cats){$('category').add(new Option(n,v));$('filter').add(new Option(n,v));} $('filter').add(new Option('Tümü',''),0); $('filter').value='';
 let rows=[],editing=null,imageData=''; function msg(t,e=false){$('msg').textContent=t;$('msg').style.color=e?'#a33a2a':'#3f4b2b'}
-async function authUI(){const {data}=await db.auth.getSession();const u=data.session?.user;if(u&&u.id===ADMIN_UID){$('login').style.display='none';$('app').style.display='block';load();}else{$('login').style.display='block';$('app').style.display='none';if(u)await db.auth.signOut();}}
-$('loginBtn').onclick=async()=>{$('loginMsg').textContent='Giriş yapılıyor...';const {data,error}=await db.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});if(error){$('loginMsg').textContent=error.message;return}if(data.user.id!==ADMIN_UID){await db.auth.signOut();$('loginMsg').textContent='Bu hesap yönetici değil.';return}$('loginMsg').textContent='';authUI();};$('logout').onclick=async()=>{await db.auth.signOut();location.reload()};
+async function authUI(){
+  if(!db)return;
+  try{
+    const {data,error}=await db.auth.getSession();
+    if(error)throw error;
+    const u=data.session?.user;
+    if(u&&u.id===ADMIN_UID){$('login').style.display='none';$('app').style.display='block';await load();}
+    else{$('login').style.display='block';$('app').style.display='none';if(u)await db.auth.signOut();}
+  }catch(e){loginStatus('Oturum kontrolü başarısız: '+e.message,true);}
+}
+async function doLogin(){
+  if(!db)return loginStatus('Supabase bağlantısı hazır değil.',true);
+  const email=$('email').value.trim(), password=$('password').value;
+  if(!email||!password)return loginStatus('E-posta ve şifreyi doldurun.',true);
+  const btn=$('loginBtn'); btn.disabled=true; btn.textContent='Giriş yapılıyor...'; loginStatus('Supabase hesabı kontrol ediliyor...');
+  try{
+    const {data,error}=await db.auth.signInWithPassword({email,password});
+    if(error)throw error;
+    if(!data?.user)throw new Error('Kullanıcı bilgisi alınamadı.');
+    if(data.user.id!==ADMIN_UID){await db.auth.signOut();throw new Error('Bu hesap yönetici olarak yetkilendirilmemiş.');}
+    loginStatus('Giriş başarılı. Panel açılıyor...');
+    await authUI();
+  }catch(e){loginStatus('Giriş hatası: '+e.message,true);}
+  finally{btn.disabled=false;btn.textContent='Giriş yap';}
+}
+$('loginBtn').addEventListener('click',doLogin);
+$('password').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
+$('logout').onclick=async()=>{if(db)await db.auth.signOut();location.reload()};
 async function fileData(f){return new Promise((res,rej)=>{const r=new FileReader;r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(f)})} $('image').onchange=async e=>{if(e.target.files[0]){imageData=await fileData(e.target.files[0]);$('preview').src=imageData;$('preview').style.display='block'}};
 async function load(){const {data,error}=await db.from('products').select('*').order('category').order('sort_order').order('id');if(error)return msg(error.message,true);rows=data||[];render();msg(rows.length+' ürün yüklendi.')}
 function render(){const f=$('filter').value,q=$('search').value.toLowerCase();const a=rows.filter(x=>(!f||x.category===f)&&(!q||(x.name+' '+(x.description||'')).toLowerCase().includes(q)));$('list').innerHTML=a.map(x=>`<div class="item"><img src="${x.image_url||''}"><div><b>${x.name}</b><div class="small">${x.category} · sıra ${x.sort_order??0}</div><div class="small">${x.description||''}</div></div><div class="actions"><button onclick="edit(${x.id})">Düzenle</button> <button class="danger" onclick="del(${x.id})">Sil</button></div></div>`).join('')||'<p>Ürün bulunamadı.</p>';} $('filter').onchange=render;$('search').oninput=render;
@@ -21,5 +61,5 @@ $('save').onclick=async()=>{const p={category:$('category').value,sort_order:+$(
 window.del=async id=>{if(!confirm('Bu ürün silinsin mi?'))return;const r=await db.from('products').delete().eq('id',id);if(r.error)return msg(r.error.message,true);await load();msg('Ürün silindi.')};
 function parseIndex(html){const d=new DOMParser().parseFromString(html,'text/html'),out=[];function addCdc(wrapId,cat){d.querySelectorAll('#'+wrapId+' .cdc').forEach((el,i)=>out.push({category:cat,sort_order:i+1,name:el.querySelector('h3')?.textContent.trim()||cat+' '+(i+1),description:el.querySelector('.cdc-desc')?.textContent.trim()||'',image_url:el.querySelector('img')?.getAttribute('src')||''}));}addCdc('cantaGridWrap','canta');addCdc('goblenGridWrap','goblen');for(const [cat] of cats){if(!cat.startsWith('soap-'))continue;const slug=cat.slice(5),page=d.getElementById('kategori-'+slug);page?.querySelectorAll('.variant').forEach((el,i)=>out.push({category:cat,sort_order:i+1,name:el.querySelector('.vname')?.textContent.trim()||el.querySelector('img')?.alt||'Ürün '+(i+1),description:'',image_url:el.querySelector('img')?.getAttribute('src')||''}));}return out.filter(x=>x.image_url)}
 $('importBtn').onclick=async()=>{if(rows.length&&!confirm('Tabloda zaten ürün var. Yine de içe aktarmak kopya oluşturabilir. Devam edilsin mi?'))return;msg('index.html okunuyor...');try{const h=await fetch('./index.html?'+Date.now()).then(r=>{if(!r.ok)throw Error('index.html bulunamadı');return r.text()}),items=parseIndex(h);if(!items.length)throw Error('Ürün bulunamadı');msg(items.length+' ürün aktarılıyor...');for(let i=0;i<items.length;i+=25){const r=await db.from('products').insert(items.slice(i,i+25));if(r.error)throw r.error}await load();msg(items.length+' ürün başarıyla aktarıldı.')}catch(e){msg('Aktarım hatası: '+e.message,true)}};
-authUI();
+if(db) authUI();
 </script></body></html>
